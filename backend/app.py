@@ -1,13 +1,39 @@
 import os
 from decimal import Decimal
+from urllib.parse import quote_plus
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+def get_database_url():
+    database_url = os.environ.get("DATABASE_URL")
+
+    if database_url:
+        return database_url
+
+    db_name = os.environ.get("DB_NAME")
+    db_user = os.environ.get("DB_USER")
+    db_password = os.environ.get("DB_PASSWORD")
+
+    if not all([db_name, db_user, db_password]):
+        return None
+
+    db_host = os.environ.get("DB_HOST", "localhost")
+    db_port = os.environ.get("DB_PORT", "5432")
+
+    return (
+        f"postgresql://{quote_plus(db_user)}:{quote_plus(db_password)}"
+        f"@{db_host}:{db_port}/{db_name}"
+    )
+
+
+DATABASE_URL = get_database_url()
 
 
 def image_media(title, url, credit="Unsplash", source_url="https://unsplash.com/"):
