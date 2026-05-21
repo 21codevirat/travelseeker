@@ -1,10 +1,13 @@
 import os
+from decimal import Decimal
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def image_media(title, url, credit="Unsplash", source_url="https://unsplash.com/"):
@@ -271,8 +274,136 @@ DESTINATIONS = [
 ]
 
 
-def get_unique_values(key):
-    return sorted({destination[key] for destination in DESTINATIONS})
+def to_number(value):
+    if isinstance(value, Decimal):
+        return float(value)
+
+    return value
+
+
+def destination_from_row(row):
+    destination = {
+        "id": row["id"],
+        "name": row["name"],
+        "location": row["location"],
+        "region": row["region"],
+        "category": row["category"],
+        "budget": row["budget"],
+        "rating": float(row["rating"]),
+        "duration_days": row["duration_days"],
+        "price_estimate": row["price_estimate"],
+        "best_time": row["best_time"],
+        "description": row["description"],
+        "highlights": [],
+        "image_url": row["image_url"],
+        "media": [],
+    }
+
+    if row.get("latitude") is not None and row.get("longitude") is not None:
+        destination["coordinates"] = {
+            "lat": to_number(row["latitude"]),
+            "lng": to_number(row["longitude"]),
+        }
+
+    return destination
+
+
+def load_destinations_from_database():
+    if not DATABASE_URL:
+        return None
+
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        with psycopg.connect(DATABASE_URL, row_factory=dict_row) as connection:
+            destination_rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    location,
+                    latitude,
+                    longitude,
+                    region,
+                    category,
+                    budget,
+                    rating,
+                    duration_days,
+                    price_estimate,
+                    best_time,
+                    description,
+                    image_url
+                FROM destinations
+                ORDER BY id;
+                """
+            ).fetchall()
+
+            destinations_by_id = {
+                row["id"]: destination_from_row(row) for row in destination_rows
+            }
+
+            highlight_rows = connection.execute(
+                """
+                SELECT destination_id, highlight
+                FROM destination_highlights
+                ORDER BY id;
+                """
+            ).fetchall()
+
+            for row in highlight_rows:
+                destination = destinations_by_id.get(row["destination_id"])
+
+                if destination:
+                    destination["highlights"].append(row["highlight"])
+
+            media_rows = connection.execute(
+                """
+                SELECT
+                    destination_id,
+                    media_type,
+                    title,
+                    media_url,
+                    poster_url,
+                    credit,
+                    source_url
+                FROM destination_media
+                ORDER BY id;
+                """
+            ).fetchall()
+
+            for row in media_rows:
+                destination = destinations_by_id.get(row["destination_id"])
+
+                if destination:
+                    destination["media"].append(
+                        {
+                            "type": row["media_type"],
+                            "title": row["title"],
+                            "url": row["media_url"],
+                            "poster": row["poster_url"],
+                            "credit": row["credit"],
+                            "source_url": row["source_url"],
+                        }
+                    )
+
+            return list(destinations_by_id.values())
+    except Exception as exc:
+        app.logger.warning("Using sample destinations because PostgreSQL is unavailable: %s", exc)
+        return None
+
+
+def get_all_destinations():
+    database_destinations = load_destinations_from_database()
+
+    if database_destinations is not None:
+        return database_destinations
+
+    return DESTINATIONS
+
+
+def get_unique_values(destinations, key):
+    return sorted({destination[key] for destination in destinations})
 
 
 def destination_matches(destination, query, category, region, budget, min_rating):
@@ -322,11 +453,17 @@ def sort_destinations(destinations, sort_by):
 
 @app.get("/")
 def health_check():
-    return jsonify({"message": "Travel Seekers API is running"})
+    return jsonify(
+        {
+            "database": "postgresql" if load_destinations_from_database() is not None else "sample",
+            "message": "Travel Seekers API is running",
+        }
+    )
 
 
 @app.get("/api/destinations")
 def get_destinations():
+    destinations = get_all_destinations()
     query = request.args.get("q", "").strip()
     category = request.args.get("category", "All")
     region = request.args.get("region", "All")
@@ -340,7 +477,7 @@ def get_destinations():
 
     filtered_destinations = [
         destination
-        for destination in DESTINATIONS
+        for destination in destinations
         if destination_matches(destination, query, category, region, budget, min_rating)
     ]
 
@@ -354,8 +491,9 @@ def get_destinations():
 
 @app.get("/api/destinations/<int:destination_id>")
 def get_destination(destination_id):
+    destinations = get_all_destinations()
     destination = next(
-        (item for item in DESTINATIONS if item["id"] == destination_id),
+        (item for item in destinations if item["id"] == destination_id),
         None,
     )
 
@@ -367,11 +505,13 @@ def get_destination(destination_id):
 
 @app.get("/api/filters")
 def get_filters():
+    destinations = get_all_destinations()
+
     return jsonify(
         {
-            "budgets": get_unique_values("budget"),
-            "categories": get_unique_values("category"),
-            "regions": get_unique_values("region"),
+            "budgets": get_unique_values(destinations, "budget"),
+            "categories": get_unique_values(destinations, "category"),
+            "regions": get_unique_values(destinations, "region"),
         }
     )
 

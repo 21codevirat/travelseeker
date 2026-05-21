@@ -126,6 +126,14 @@ The schema creates:
 
 Sample destinations include Goa, Manali, Jaipur, Kerala Backwaters, Varanasi, and Munnar.
 
+Set the backend database URL:
+
+```text
+DATABASE_URL=postgresql://username:password@host:5432/travel_tourism
+```
+
+When `DATABASE_URL` is set, Flask reads destinations, highlights, media, and map coordinates from PostgreSQL. Without `DATABASE_URL`, it falls back to the built-in sample data so local development still works.
+
 ## Notes
 
 - The Flask API currently returns sample destination data from `app.py` so the project works immediately.
@@ -141,6 +149,7 @@ Backend:
 ```bash
 cd backend
 pip install -r requirements.txt
+psql "$DATABASE_URL" -f ../database/schema.sql
 gunicorn app:app
 ```
 

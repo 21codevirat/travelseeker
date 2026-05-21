@@ -9,6 +9,8 @@ CREATE TABLE destinations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     location VARCHAR(150) NOT NULL,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6),
     region VARCHAR(80) NOT NULL,
     category VARCHAR(80) NOT NULL,
     budget VARCHAR(40) NOT NULL,
@@ -41,6 +43,8 @@ CREATE TABLE destination_media (
 INSERT INTO destinations (
     name,
     location,
+    latitude,
+    longitude,
     region,
     category,
     budget,
@@ -55,6 +59,8 @@ VALUES
     (
         'Goa',
         'Goa, India',
+        15.2993,
+        74.1240,
         'West India',
         'Beach',
         'Moderate',
@@ -68,6 +74,8 @@ VALUES
     (
         'Manali',
         'Himachal Pradesh, India',
+        32.2396,
+        77.1887,
         'North India',
         'Mountain',
         'Moderate',
@@ -81,6 +89,8 @@ VALUES
     (
         'Jaipur',
         'Rajasthan, India',
+        26.9124,
+        75.7873,
         'North India',
         'Heritage',
         'Affordable',
@@ -94,6 +104,8 @@ VALUES
     (
         'Kerala Backwaters',
         'Alleppey, Kerala, India',
+        9.4981,
+        76.3388,
         'South India',
         'Nature',
         'Premium',
@@ -107,6 +119,8 @@ VALUES
     (
         'Varanasi',
         'Uttar Pradesh, India',
+        25.3176,
+        82.9739,
         'North India',
         'Spiritual',
         'Affordable',
@@ -120,6 +134,8 @@ VALUES
     (
         'Munnar',
         'Kerala, India',
+        10.0889,
+        77.0595,
         'South India',
         'Hill Station',
         'Moderate',
@@ -133,6 +149,8 @@ VALUES
     (
         'Udaipur',
         'Rajasthan, India',
+        24.5854,
+        73.7125,
         'West India',
         'Heritage',
         'Premium',
@@ -146,6 +164,8 @@ VALUES
     (
         'Rishikesh',
         'Uttarakhand, India',
+        30.0869,
+        78.2676,
         'North India',
         'Adventure',
         'Affordable',
@@ -159,6 +179,8 @@ VALUES
     (
         'Andaman Islands',
         'Andaman and Nicobar Islands, India',
+        11.9761,
+        93.0047,
         'Island India',
         'Beach',
         'Premium',
@@ -172,6 +194,8 @@ VALUES
     (
         'Leh Ladakh',
         'Ladakh, India',
+        34.1526,
+        77.5771,
         'North India',
         'Mountain',
         'Premium',
@@ -185,6 +209,8 @@ VALUES
     (
         'Agra',
         'Uttar Pradesh, India',
+        27.1767,
+        78.0081,
         'North India',
         'Heritage',
         'Affordable',
@@ -198,6 +224,8 @@ VALUES
     (
         'Darjeeling',
         'West Bengal, India',
+        27.0410,
+        88.2663,
         'East India',
         'Hill Station',
         'Moderate',
